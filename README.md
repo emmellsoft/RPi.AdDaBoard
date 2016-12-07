@@ -1,2 +1,5 @@
 # RPi.AdDaBoard
-A complete Windows IoT class library for the Raspberry Pi "Raspberry Pi High-Precision AD/DA Expansion Board" (C#)
+A complete Windows IoT Core class library for the Raspberry Pi "Raspberry Pi High-Precision AD/DA Expansion Board" (C#)
+
+NOT YET COMPLETED...
+Work in progress...
