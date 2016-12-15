@@ -2,7 +2,7 @@
 
 namespace Emmellsoft.IoT.Rpi.AdDaBoard
 {
-    internal sealed class Dac8552 : IDac, IDisposable
+    internal sealed class Dac8552 : IAnalogOutput, IDisposable
     {
         private const byte ChannelA = 0x30; // Magic number to access the DAC output channel A.
         private const byte ChannelB = 0x34; // Magic number to access the DAC output channel B.
@@ -19,21 +19,21 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
             _spiComm.Dispose();
         }
 
-        public void SetOutput(DacChannel dacChannel, double normalizedOutputLevel) => SetOutput(dacChannel, normalizedOutputLevel, 1.0);
+        public void SetOutput(OutputChannel channel, double normalizedOutputLevel) => SetOutput(channel, normalizedOutputLevel, 1.0);
 
-        public void SetOutput(DacChannel dacChannel, double voltage, double vRef)
+        public void SetOutput(OutputChannel channel, double voltage, double vRef)
         {
-            byte channel;
-            switch (dacChannel)
+            byte channelByte;
+            switch (channel)
             {
-                case DacChannel.A:
-                    channel = ChannelA;
+                case OutputChannel.A:
+                    channelByte = ChannelA;
                     break;
-                case DacChannel.B:
-                    channel = ChannelB;
+                case OutputChannel.B:
+                    channelByte = ChannelB;
                     break;
                 default:
-                    throw new ArgumentOutOfRangeException(nameof(dacChannel), dacChannel, null);
+                    throw new ArgumentOutOfRangeException(nameof(channel), channel, null);
             }
 
             if (voltage > vRef)
@@ -49,7 +49,7 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
 
             byte[] data =
             {
-                channel,
+                channelByte,
                 (byte)(volt16Bit >> 8),
                 (byte)(volt16Bit & 0xff)
             };

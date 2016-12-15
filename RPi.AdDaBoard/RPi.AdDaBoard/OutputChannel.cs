@@ -3,7 +3,7 @@
     /// <summary>
     /// A digital-to-analog output channel.
     /// </summary>
-    public enum DacChannel
+    public enum OutputChannel
     {
         /// <summary>
         /// The analog output channel A.

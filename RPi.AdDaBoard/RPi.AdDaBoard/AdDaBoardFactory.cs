@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Threading.Tasks;
-using Windows.Devices.Gpio;
 using Windows.Devices.Spi;
 
 namespace Emmellsoft.IoT.Rpi.AdDaBoard
@@ -19,11 +18,9 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
 
         private static async Task<IAdDaBoard> CreateAdDaBoard()
         {
-            var spiDevice = await CreateSpiDevice().ConfigureAwait(false);
+            SpiDevice spiDevice = await CreateSpiDevice().ConfigureAwait(false);
 
-            var spiCommFactory = new SpiCommFactory(spiDevice, GpioController.GetDefault());
-
-            return new AdDaBoard(spiCommFactory);
+            return new AdDaBoard(spiDevice);
         }
 
         private static async Task<SpiDevice> CreateSpiDevice()

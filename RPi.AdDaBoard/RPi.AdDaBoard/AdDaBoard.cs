@@ -1,24 +1,22 @@
 ﻿using System;
+using Windows.Devices.Spi;
 
 namespace Emmellsoft.IoT.Rpi.AdDaBoard
 {
     internal sealed class AdDaBoard : IAdDaBoard
     {
-        private const int Ads1256SpiChipSelectPinNumber = 22; // (GPIO 22)
-        private const int Dac8552SpiChipSelectPinNumber = 23; // (GPIO 23)
-
-        private readonly SpiCommFactory _spiCommFactory;
+        private readonly SpiCommController _spiCommController;
         private bool _isDisposed;
 
-        public AdDaBoard(SpiCommFactory spiCommFactory)
+        public AdDaBoard(SpiDevice spiDevice)
         {
-            _spiCommFactory = spiCommFactory;
+            _spiCommController = new SpiCommController(spiDevice);
 
-            ISpiComm ads1256SpiComm = _spiCommFactory.Create(Ads1256SpiChipSelectPinNumber);
-            ISpiComm dac8552SpiComm = _spiCommFactory.Create(Dac8552SpiChipSelectPinNumber);
+            ISpiComm ads1256SpiComm = _spiCommController.Create(AdDaBoardPins.Ads1256SpiChipSelectPinNumber);
+            ISpiComm dac8552SpiComm = _spiCommController.Create(AdDaBoardPins.Dac8552SpiChipSelectPinNumber);
 
-            Adc = new Ads1256(ads1256SpiComm);
-            Dac = new Dac8552(dac8552SpiComm);
+            Input = new Ads1256(ads1256SpiComm, AdDaBoardPins.Ads1256DataReadyPinNumber);
+            Output = new Dac8552(dac8552SpiComm);
         }
 
         public void Dispose()
@@ -28,16 +26,16 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
                 return;
             }
 
-            ((IDisposable)Adc)?.Dispose();
-            ((IDisposable)Dac)?.Dispose();
+            ((IDisposable)Input)?.Dispose();
+            ((IDisposable)Output)?.Dispose();
 
-            _spiCommFactory.Dispose();
+            _spiCommController.Dispose();
 
             _isDisposed = true;
         }
 
-        public IAdc Adc { get; }
+        public IAnalogInput Input { get; }
 
-        public IDac Dac { get; }
+        public IAnalogOutput Output { get; }
     }
 }

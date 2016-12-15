@@ -21,8 +21,8 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard.Demo
 
                 for (int loop = 0; loop < 10000000; loop++)
                 {
-                    adDaBoard.Dac.SetOutput(DacChannel.A, voltage / 100.0);
-                    adDaBoard.Dac.SetOutput(DacChannel.B, 1.0 - voltage / 100.0);
+                    adDaBoard.Output.SetOutput(OutputChannel.A, voltage / 100.0);
+                    adDaBoard.Output.SetOutput(OutputChannel.B, 1.0 - voltage / 100.0);
 
                     voltage += deltaVoltage;
 

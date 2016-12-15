@@ -4,10 +4,9 @@ using Windows.Devices.Spi;
 
 namespace Emmellsoft.IoT.Rpi.AdDaBoard
 {
-    internal class SpiCommFactory : IDisposable
+    internal class SpiCommController
     {
         private readonly SpiDevice _spiDevice;
-        private readonly GpioController _gpioController;
         private readonly object _syncObj = new object();
 
         private class SpiComm : ISpiComm
@@ -41,10 +40,9 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
             }
         }
 
-        public SpiCommFactory(SpiDevice spiDevice, GpioController gpioController)
+        public SpiCommController(SpiDevice spiDevice)
         {
             _spiDevice = spiDevice;
-            _gpioController = gpioController;
         }
 
         public void Dispose()
@@ -54,7 +52,7 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
 
         public ISpiComm Create(int chipSelectPinNumber)
         {
-            GpioPin chipSelectGpioPin = _gpioController.OpenPin(chipSelectPinNumber);
+            GpioPin chipSelectGpioPin = GpioController.GetDefault().OpenPin(chipSelectPinNumber);
             chipSelectGpioPin.SetDriveMode(GpioPinDriveMode.Output);
             return new SpiComm(_spiDevice, chipSelectGpioPin, _syncObj);
         }
