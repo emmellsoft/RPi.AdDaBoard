@@ -123,6 +123,7 @@
     <Compile Include="ISpiComm.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SpiCommFactory.cs" />
+    <Compile Include="Timing.cs" />
     <EmbeddedResource Include="Properties\RPi.AdDaBoard.rd.xml" />
   </ItemGroup>
   <ItemGroup>

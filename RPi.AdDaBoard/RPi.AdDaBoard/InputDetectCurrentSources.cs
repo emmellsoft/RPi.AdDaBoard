@@ -7,7 +7,7 @@
     public enum InputDetectCurrentSources
     {
         /// <summary>
-        /// No detection.
+        /// No detection. (Default)
         /// </summary>
         Off,
 

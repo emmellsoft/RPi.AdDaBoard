@@ -16,10 +16,10 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
 
         private static class Register
         {
-            public const byte Status = 0; // x1H
-            public const byte Mux = 1; // 01H
-            public const byte AdControl = 2; // 20H
-            public const byte SampleRate = 3; // F0H
+            public const byte Status = 0x00;
+            public const byte Mux = 0x01;
+            public const byte AdControl = 0x02;
+            public const byte SampleRate = 0x03;
         }
 
         private static class StatusValue
@@ -54,7 +54,7 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
             public const byte NegativeInputChannel_AnalogIn5 = 0x05;
             public const byte NegativeInputChannel_AnalogIn6 = 0x06;
             public const byte NegativeInputChannel_AnalogIn7 = 0x07;
-            public const byte NegativeInputChannel_AnalogInCom = 0x80;
+            public const byte NegativeInputChannel_AnalogInCom = 0x08;
         }
 
         private readonly ISpiComm _spiComm;
@@ -63,6 +63,7 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
         private InputDetectCurrentSources? _currentDetectCurrentSources;
         private bool? _autoCalibrate;
         private readonly GpioPin _dataReadyPin;
+        private readonly Timing _timing = new Timing();
 
         public Ads1256(ISpiComm spiComm, int dataReadyPinNumber)
         {
@@ -88,32 +89,30 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
 
         public double GetInput(AnalogInput input)
         {
-            EnsureConfiguration();
-
-            byte positiveInputValue = GetPositiveInputMuxValue(input);
-
-            WriteRegister(Register.Mux, (byte)(positiveInputValue | MuxValue.NegativeInputChannel_AnalogInCom));
-
-            WriteCommand(Command.Sync);
-
-            WriteCommand(Command.WakeUp);
-
-            int rawInputValue = ReadRawInputValue();
-
-            return rawInputValue / 1000000.0;
+            return GetInput(
+                GetPositiveInputMuxValue(input),
+                MuxValue.NegativeInputChannel_AnalogInCom);
         }
 
         public double GetInputDifference(AnalogInput positiveInput, AnalogInput negativeInput)
         {
+            return GetInput(
+                GetPositiveInputMuxValue(positiveInput),
+                GetNegativeInputMuxValue(negativeInput));
+        }
+
+        private double GetInput(byte positiveInputMuxValue, byte negativeInputMuxValue)
+        {
             EnsureConfiguration();
 
-            byte positiveInputMuxValue = GetPositiveInputMuxValue(positiveInput);
-            byte negativeInputMuxValue = GetNegativeInputMuxValue(negativeInput);
-
             WriteRegister(Register.Mux, (byte)(positiveInputMuxValue | negativeInputMuxValue));
+            _timing.WaitMicroseconds(5);
 
             WriteCommand(Command.Sync);
+            _timing.WaitMicroseconds(5);
+
             WriteCommand(Command.WakeUp);
+            _timing.WaitMicroseconds(25);
 
             int rawInputValue = ReadRawInputValue();
 
@@ -131,7 +130,7 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
             {
                 spiDevice.Write(new[] { Command.ReadData });
 
-                // ADS1256_DelayDATA();    /*delay time  */ TODO: Behövs delay...?
+                _timing.WaitMicroseconds(10);
 
                 spiDevice.Read(raw24BitBuffer);
             });
@@ -304,27 +303,25 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
             _currentDetectCurrentSources = DetectCurrentSources;
             _autoCalibrate = AutoCalibrate;
 
-            // ADS1256_CfgADC
-
             WaitDataReady();
 
             byte statusRegister = (byte)(
                 StatusValue.DataOutputBitOrderMostSignificantBitFirst |
-                (AutoCalibrate ? StatusValue.AutoCalibrateEnabled : StatusValue.AutoCalibrateDisabled) |
+                (_autoCalibrate.Value ? StatusValue.AutoCalibrateEnabled : StatusValue.AutoCalibrateDisabled) |
                 StatusValue.AnalogInputBufferDisabled);
 
             byte muxRegister = MuxValue.PositiveInputChannel_AnalogIn0 | MuxValue.NegativeInputChannel_AnalogIn1; // The default value
 
-            byte adControlRegisterGain = GetGainByteValue(Gain);
-            byte adControlRegisterDetectCurrentSourcesByte = GetDetectCurrentSourcesByteValue(DetectCurrentSources);
+            byte adControlRegisterGain = GetGainByteValue(_currentGain.Value);
+            byte adControlRegisterDetectCurrentSourcesByte = GetDetectCurrentSourcesByteValue(_currentDetectCurrentSources.Value);
             byte adControlRegister = (byte)((0 << 5) | adControlRegisterDetectCurrentSourcesByte | adControlRegisterGain);
 
-            byte sampleRateRegister = GetSampleRateByteValue(SampleRate);
+            byte sampleRateRegister = GetSampleRateByteValue(_currentSampleRate.Value);
 
             byte[] spiData =
             {
                 Command.WriteRegister,
-                //(byte)0x03,  // TODO:  ??
+                0x03, // (The number of following bytes minus one)
                 statusRegister,
                 muxRegister,
                 adControlRegister,
@@ -332,6 +329,8 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
             };
 
             _spiComm.Use(spiDevice => spiDevice.Write(spiData));
+
+            _timing.WaitMicroseconds(50);
         }
 
         private void WriteCommand(byte command)
@@ -345,8 +344,8 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
         {
             byte[] spiData =
             {
-                (byte)(Command.WriteRegister| registerId),
-                0,
+                (byte)(Command.WriteRegister | registerId),
+                0x00, // (The number of following bytes minus one)
                 value
             };
 

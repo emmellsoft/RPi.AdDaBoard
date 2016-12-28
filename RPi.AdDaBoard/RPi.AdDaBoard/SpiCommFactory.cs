@@ -34,7 +34,9 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
                 lock (_syncObj)
                 {
                     _chipSelectGpioPin.Write(GpioPinValue.Low);
+
                     spiAction(_spiDevice);
+
                     _chipSelectGpioPin.Write(GpioPinValue.High);
                 }
             }
