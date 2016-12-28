@@ -22,7 +22,8 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard.Demo
             using (IAdDaBoard adDaBoard = await AdDaBoardFactory.GetAdDaBoard().ConfigureAwait(false))
             {
                 //await OutputDemo(adDaBoard).ConfigureAwait(false);
-                await InputDemo(adDaBoard).ConfigureAwait(false);
+                //await InputDemo(adDaBoard).ConfigureAwait(false);
+                await InputOutputDemo(adDaBoard).ConfigureAwait(false);
             }
         }
 
@@ -73,6 +74,30 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard.Demo
                 Debug.WriteLine($"{string.Join("   ", values.Select(x => x.ToString("0.000")))}");
 
                 await Task.Delay(100);
+            }
+        }
+
+        private static async Task InputOutputDemo(IAdDaBoard adDaBoard)
+        {
+            adDaBoard.Input.SampleRate = InputSampleRate.SampleRate100Sps;
+            adDaBoard.Input.AutoCalibrate = true;
+            adDaBoard.Input.DetectCurrentSources = InputDetectCurrentSources.Detect500NanoAmpere;
+            adDaBoard.Input.Gain = InputGain.Gain1;
+
+            const double vMin = -0.005;
+            const double vMax = 6.230;
+
+            while (true)
+            {
+                double value = adDaBoard.Input.GetInput(AnalogInput.Input0);
+
+                var normalizedValue = (value + vMin) / (vMax - vMin);
+
+                //Debug.WriteLine(normalizedValue.ToString("0.000"));
+
+                adDaBoard.Output.SetOutput(OutputChannel.A, normalizedValue);
+
+                await Task.Delay(1);
             }
         }
     }

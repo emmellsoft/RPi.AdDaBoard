@@ -31,14 +31,28 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
 
             public void Use(Action<SpiDevice> spiAction)
             {
+                Use(spiDevice => { spiAction(spiDevice); return false; });
+            }
+
+            public T Use<T>(Func<SpiDevice, T> spiAction)
+            {
+                T result;
+
                 lock (_syncObj)
                 {
                     _chipSelectGpioPin.Write(GpioPinValue.Low);
 
-                    spiAction(_spiDevice);
-
-                    _chipSelectGpioPin.Write(GpioPinValue.High);
+                    try
+                    {
+                        result = spiAction(_spiDevice);
+                    }
+                    finally
+                    {
+                        _chipSelectGpioPin.Write(GpioPinValue.High);
+                    }
                 }
+
+                return result;
             }
         }
 

@@ -19,7 +19,7 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
             long finalTick = (long)(initialTick + desiredTicks);
             while (_stopwatch.ElapsedTicks < finalTick)
             {
-                // Tight loop.
+                // Tight loop.  :-/
             }
         }
     }

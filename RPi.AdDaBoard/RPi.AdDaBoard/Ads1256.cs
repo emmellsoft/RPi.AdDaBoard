@@ -1,5 +1,6 @@
 ﻿using System;
 using Windows.Devices.Gpio;
+using Windows.Devices.Spi;
 
 namespace Emmellsoft.IoT.Rpi.AdDaBoard
 {
@@ -103,37 +104,37 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
 
         private double GetInput(byte positiveInputMuxValue, byte negativeInputMuxValue)
         {
-            EnsureConfiguration();
+            return _spiComm.Use(spiDevice =>
+            {
+                EnsureConfiguration(spiDevice);
 
-            WriteRegister(Register.Mux, (byte)(positiveInputMuxValue | negativeInputMuxValue));
-            _timing.WaitMicroseconds(5);
+                WriteRegister(spiDevice, Register.Mux, (byte)(positiveInputMuxValue | negativeInputMuxValue));
+                _timing.WaitMicroseconds(5);
 
-            WriteCommand(Command.Sync);
-            _timing.WaitMicroseconds(5);
+                WriteCommand(spiDevice, Command.Sync);
+                _timing.WaitMicroseconds(5);
 
-            WriteCommand(Command.WakeUp);
-            _timing.WaitMicroseconds(25);
+                WriteCommand(spiDevice, Command.WakeUp);
+                _timing.WaitMicroseconds(25);
 
-            int rawInputValue = ReadRawInputValue();
+                int rawInputValue = ReadRawInputValue(spiDevice);
 
-            return rawInputValue / 1000000.0;
+                return rawInputValue / 1000000.0;
+            });
         }
 
-        private int ReadRawInputValue()
+        private int ReadRawInputValue(SpiDevice spiDevice)
         {
             WaitDataReady();
 
             // The buffer to fit the sample of 24 bits (i.e. 3 bytes)
             byte[] raw24BitBuffer = new byte[3];
 
-            _spiComm.Use(spiDevice =>
-            {
-                spiDevice.Write(new[] { Command.ReadData });
+            spiDevice.Write(new[] { Command.ReadData });
 
-                _timing.WaitMicroseconds(10);
+            _timing.WaitMicroseconds(10);
 
-                spiDevice.Read(raw24BitBuffer);
-            });
+            spiDevice.Read(raw24BitBuffer);
 
             uint value = ((uint)raw24BitBuffer[0] << 16) | ((uint)raw24BitBuffer[1] << 8) | raw24BitBuffer[2];
 
@@ -288,7 +289,7 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
             }
         }
 
-        private void EnsureConfiguration()
+        private void EnsureConfiguration(SpiDevice spiDevice)
         {
             if ((_currentGain == Gain) &&
                 (_currentSampleRate == SampleRate) &&
@@ -328,19 +329,19 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
                 sampleRateRegister
             };
 
-            _spiComm.Use(spiDevice => spiDevice.Write(spiData));
+            spiDevice.Write(spiData);
 
             _timing.WaitMicroseconds(50);
         }
 
-        private void WriteCommand(byte command)
+        private static void WriteCommand(SpiDevice spiDevice, byte command)
         {
             byte[] spiData = { command };
 
-            _spiComm.Use(spiDevice => spiDevice.Write(spiData));
+            spiDevice.Write(spiData);
         }
 
-        private void WriteRegister(byte registerId, byte value)
+        private static void WriteRegister(SpiDevice spiDevice, byte registerId, byte value)
         {
             byte[] spiData =
             {
@@ -349,7 +350,7 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
                 value
             };
 
-            _spiComm.Use(spiDevice => spiDevice.Write(spiData));
+            spiDevice.Write(spiData);
         }
     }
 }
