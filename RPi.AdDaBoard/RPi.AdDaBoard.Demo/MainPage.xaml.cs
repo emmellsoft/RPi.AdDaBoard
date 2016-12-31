@@ -1,44 +1,56 @@
-﻿using System.Diagnostics;
-using System.Linq;
+﻿using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using Windows.UI.Xaml.Controls;
 
 namespace Emmellsoft.IoT.Rpi.AdDaBoard.Demo
 {
+    /// <summary>
+    /// The intention of this class is to show the basic usage of the IAdDaBoard and may serve as a playground for it.
+    /// </summary>
     public sealed partial class MainPage : Page
     {
+        private readonly Func<IAdDaBoard, Task> _currentDemo;
+
         public MainPage()
         {
             InitializeComponent();
 
+            //===============================================================
+            // Choose demo here!
+            // ------------------------------
+
+            _currentDemo = OutputDemo;
+            //_currentDemo = InputDemo;
+
+            //===============================================================
+            
             Task.Run(async () => await Demo()).ConfigureAwait(false);
         }
 
-        private static async Task Demo()
+        private async Task Demo()
         {
             // (Technically the demo will never end, but in a different scenario the IAdDaBoard should be disposed,
             // therefor I chose tho get the AD/DA-board in a using-statement.)
 
             using (IAdDaBoard adDaBoard = await AdDaBoardFactory.GetAdDaBoard().ConfigureAwait(false))
             {
-                //await OutputDemo(adDaBoard).ConfigureAwait(false);
-                //await InputDemo(adDaBoard).ConfigureAwait(false);
-                await InputOutputDemo(adDaBoard).ConfigureAwait(false);
+                await _currentDemo(adDaBoard).ConfigureAwait(false);
             }
         }
 
         private static async Task OutputDemo(IAdDaBoard adDaBoard)
         {
-            int outputLevel = 0;     // This value will from 0 to 100 and back to 0 repeatedly ...
-            int outputLevelStep = 5; // ... taking a step of this value at the time.
+            int outputLevel = 0;     // This ('outputLevel') variable will from 0 to 100 and back to 0 repeatedly ...
+            int outputLevelStep = 5; // ... taking a step of this ('outputLevelStep') value at the time.
 
             while (true)
             {
                 double normalizedOutputLevel = outputLevel / 100.0;
                 double invertedNormalizedOutputLevel = 1.0 - normalizedOutputLevel;
 
-                adDaBoard.Output.SetOutput(OutputChannel.A, normalizedOutputLevel);
-                adDaBoard.Output.SetOutput(OutputChannel.B, invertedNormalizedOutputLevel);
+                adDaBoard.Output.SetOutput(OutputPin.Output0, normalizedOutputLevel);
+                adDaBoard.Output.SetOutput(OutputPin.Output1, invertedNormalizedOutputLevel);
 
                 outputLevel += outputLevelStep;
                 if ((outputLevel == 0) || (outputLevel == 100))
@@ -52,52 +64,22 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard.Demo
 
         private static async Task InputDemo(IAdDaBoard adDaBoard)
         {
-            adDaBoard.Input.SampleRate = InputSampleRate.SampleRate100Sps;
-            adDaBoard.Input.AutoCalibrate = true;
-            adDaBoard.Input.DetectCurrentSources = InputDetectCurrentSources.Detect500NanoAmpere;
+            adDaBoard.Input.DataRate = InputDataRate.SampleRate50Sps;
+            adDaBoard.Input.AutoSelfCalibrate = true;
+            adDaBoard.Input.DetectCurrentSources = InputDetectCurrentSources.Off;
             adDaBoard.Input.Gain = InputGain.Gain1;
+
+            // The demo continously reads the value of the 10 kohm potentiometer knob and the photo resistor and
+            // writes the values to the Output window in Visual Studio.
 
             while (true)
             {
-                var values = new[]
-                {
-                    adDaBoard.Input.GetInput(AnalogInput.Input0),
-                    adDaBoard.Input.GetInput(AnalogInput.Input1),
-                    adDaBoard.Input.GetInput(AnalogInput.Input2),
-                    adDaBoard.Input.GetInput(AnalogInput.Input3),
-                    adDaBoard.Input.GetInput(AnalogInput.Input4),
-                    adDaBoard.Input.GetInput(AnalogInput.Input5),
-                    adDaBoard.Input.GetInput(AnalogInput.Input6),
-                    adDaBoard.Input.GetInput(AnalogInput.Input7)
-                };
+                double knobValue = adDaBoard.Input.GetInput(InputPin.Input0);
+                double photoResistorValue = adDaBoard.Input.GetInput(InputPin.Input0);
 
-                Debug.WriteLine($"{string.Join("   ", values.Select(x => x.ToString("0.000")))}");
+                Debug.WriteLine($"Knob: {knobValue:0.0000000}, Photo resistor: {photoResistorValue:0.000}");
 
                 await Task.Delay(100);
-            }
-        }
-
-        private static async Task InputOutputDemo(IAdDaBoard adDaBoard)
-        {
-            adDaBoard.Input.SampleRate = InputSampleRate.SampleRate100Sps;
-            adDaBoard.Input.AutoCalibrate = true;
-            adDaBoard.Input.DetectCurrentSources = InputDetectCurrentSources.Detect500NanoAmpere;
-            adDaBoard.Input.Gain = InputGain.Gain1;
-
-            const double vMin = -0.005;
-            const double vMax = 6.230;
-
-            while (true)
-            {
-                double value = adDaBoard.Input.GetInput(AnalogInput.Input0);
-
-                var normalizedValue = (value + vMin) / (vMax - vMin);
-
-                //Debug.WriteLine(normalizedValue.ToString("0.000"));
-
-                adDaBoard.Output.SetOutput(OutputChannel.A, normalizedValue);
-
-                await Task.Delay(1);
             }
         }
     }

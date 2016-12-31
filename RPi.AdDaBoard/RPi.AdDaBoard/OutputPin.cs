@@ -1,18 +1,18 @@
 ﻿namespace Emmellsoft.IoT.Rpi.AdDaBoard
 {
     /// <summary>
-    /// A digital-to-analog output channel.
+    /// The analog output channels.
     /// </summary>
-    public enum OutputChannel
+    public enum OutputPin
     {
         /// <summary>
-        /// The analog output channel A.
+        /// The DAC0 pin.
         /// </summary>
-        A,
+        Output0,
 
         /// <summary>
-        /// The analog output channel B.
+        /// The DAC1 pin.
         /// </summary>
-        B
+        Output1
     }
 }

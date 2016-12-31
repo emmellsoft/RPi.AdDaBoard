@@ -107,16 +107,16 @@
     <None Include="project.json" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AnalogInput.cs" />
+    <Compile Include="InputPin.cs" />
     <Compile Include="InputDetectCurrentSources.cs" />
     <Compile Include="InputGain.cs" />
-    <Compile Include="InputSampleRate.cs" />
+    <Compile Include="InputDataRate.cs" />
     <Compile Include="AdDaBoard.cs" />
     <Compile Include="AdDaBoardFactory.cs" />
     <Compile Include="AdDaBoardPins.cs" />
     <Compile Include="Ads1256.cs" />
     <Compile Include="Dac8552.cs" />
-    <Compile Include="OutputChannel.cs" />
+    <Compile Include="OutputPin.cs" />
     <Compile Include="IAnalogInput.cs" />
     <Compile Include="IAdDaBoard.cs" />
     <Compile Include="IAnalogOutput.cs" />

@@ -4,36 +4,35 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
 {
     internal sealed class Dac8552 : IAnalogOutput, IDisposable
     {
-        private const byte ChannelA = 0x30; // Magic number to access the DAC output channel A.
-        private const byte ChannelB = 0x34; // Magic number to access the DAC output channel B.
-
-        private readonly ISpiComm _spiComm;
+        private const byte OutputPin0 = 0x30; // Magic number to access the DAC output outputPin Output0.
+        private const byte OutputPin1 = 0x34; // Magic number to access the DAC output outputPin B.
 
         public Dac8552(ISpiComm spiComm)
         {
-            _spiComm = spiComm;
+            SpiComm = spiComm;
         }
 
         public void Dispose()
         {
-            _spiComm.Dispose();
         }
 
-        public void SetOutput(OutputChannel channel, double normalizedOutputLevel) => SetOutput(channel, normalizedOutputLevel, 1.0);
+        public ISpiComm SpiComm { get; }
 
-        public void SetOutput(OutputChannel channel, double voltage, double vRef)
+        public void SetOutput(OutputPin outputPin, double normalizedOutputLevel) => SetOutput(outputPin, normalizedOutputLevel, 1.0);
+
+        public void SetOutput(OutputPin outputPin, double voltage, double vRef)
         {
             byte channelByte;
-            switch (channel)
+            switch (outputPin)
             {
-                case OutputChannel.A:
-                    channelByte = ChannelA;
+                case OutputPin.Output0:
+                    channelByte = OutputPin0;
                     break;
-                case OutputChannel.B:
-                    channelByte = ChannelB;
+                case OutputPin.Output1:
+                    channelByte = OutputPin1;
                     break;
                 default:
-                    throw new ArgumentOutOfRangeException(nameof(channel), channel, null);
+                    throw new ArgumentOutOfRangeException(nameof(outputPin), outputPin, null);
             }
 
             if (voltage > vRef)
@@ -54,7 +53,7 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
                 (byte)(volt16Bit & 0xff)
             };
 
-            _spiComm.Use(spiDevice => spiDevice.Write(data));
+            SpiComm.Operate(spiDevice => spiDevice.Write(data));
         }
     }
 }

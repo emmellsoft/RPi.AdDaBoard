@@ -29,12 +29,12 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
                 _chipSelectGpioPin.Dispose();
             }
 
-            public void Use(Action<SpiDevice> spiAction)
+            public void Operate(Action<SpiDevice> spiAction)
             {
-                Use(spiDevice => { spiAction(spiDevice); return false; });
+                Operate(spiDevice => { spiAction(spiDevice); return false; });
             }
 
-            public T Use<T>(Func<SpiDevice, T> spiAction)
+            public T Operate<T>(Func<SpiDevice, T> spiAction)
             {
                 T result;
 

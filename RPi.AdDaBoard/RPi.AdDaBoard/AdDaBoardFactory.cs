@@ -4,6 +4,9 @@ using Windows.Devices.Spi;
 
 namespace Emmellsoft.IoT.Rpi.AdDaBoard
 {
+    /// <summary>
+    /// Output0 factory class for getting access to the IAdDaBoard.
+    /// </summary>
     public static class AdDaBoardFactory
     {
         private static readonly Task<IAdDaBoard> _getAdDaBoard = CreateAdDaBoard();

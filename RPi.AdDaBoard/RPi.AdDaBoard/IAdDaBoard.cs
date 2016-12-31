@@ -13,7 +13,7 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
         IAnalogInput Input { get; }
 
         /// <summary>
-        /// A digital-to-analog converter.
+        /// Output0 digital-to-analog converter.
         /// </summary>
         IAnalogOutput Output { get; }
     }

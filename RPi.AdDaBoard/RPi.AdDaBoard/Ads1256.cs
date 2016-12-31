@@ -1,74 +1,82 @@
 ﻿using System;
+using System.Threading.Tasks;
 using Windows.Devices.Gpio;
 using Windows.Devices.Spi;
 
 namespace Emmellsoft.IoT.Rpi.AdDaBoard
 {
+    // TODO: Read registers at startup
+
+
     internal class Ads1256 : IAnalogInput, IDisposable
     {
-        private static class Command
+        private static class Constants
         {
-            public const byte WakeUp = 0x00;        // Completes SYNC and Exits Standby Mode 00000000 (00h)
-            public const byte ReadData = 0x01;      // Read Data                             00000001 (01h)
-            public const byte ReadRegister = 0x10;  // Read from REG rrr                     0001rrrr (1xh)
-            public const byte WriteRegister = 0x50; // Write to REG rrr                      0101rrrr (5xh)
-            public const byte Sync = 0xFC;          // Synchronize the A/D Conversion        11111100 (FCh)
+            public static class Command
+            {
+                public const byte WakeUp = 0x00;    // Completes SYNC and Exits Standby Mode 00000000 (00h)
+                public const byte ReadData = 0x01;  // Read Data                             00000001 (01h)
+                public const byte ReadReg = 0x10;   // Read from REG rrr                     0001rrrr (1xh)
+                public const byte WriteReg = 0x50;  // Write to REG rrr                      0101rrrr (5xh)
+                public const byte SelfCal = 0xF0;   // Offset and Gain Self-Calibration      11110000 (F0h)
+                public const byte Sync = 0xFC;      // Synchronize the Output0/D Conversion  11111100 (FCh)
+            }
+
+            public static class Register
+            {
+                public const byte Status = 0x00;
+                public const byte Mux = 0x01;
+                public const byte AdControl = 0x02;
+                public const byte SampleRate = 0x03;
+            }
+
+            public static class StatusValue
+            {
+                public const byte DataOutputBitOrderMostSignificantBitFirst = 0x00;
+                public const byte DataOutputBitOrderLeastSignificantBitFirst = 0x08;
+
+                public const byte AutoCalibrateDisabled = 0x00;
+                public const byte AutoCalibrateEnabled = 0x04;
+
+                public const byte AnalogInputBufferDisabled = 0x00;
+                public const byte AnalogInputBufferEnable = 0x02;
+            }
+
+            public static class MuxValue
+            {
+                public const byte PositiveInputChannel_AnalogIn0 = 0x00; // Default
+                public const byte PositiveInputChannel_AnalogIn1 = 0x10;
+                public const byte PositiveInputChannel_AnalogIn2 = 0x20;
+                public const byte PositiveInputChannel_AnalogIn3 = 0x30;
+                public const byte PositiveInputChannel_AnalogIn4 = 0x40;
+                public const byte PositiveInputChannel_AnalogIn5 = 0x50;
+                public const byte PositiveInputChannel_AnalogIn6 = 0x60;
+                public const byte PositiveInputChannel_AnalogIn7 = 0x70;
+                public const byte PositiveInputChannel_AnalogInCom = 0x80;
+
+                public const byte NegativeInputChannel_AnalogIn0 = 0x00;
+                public const byte NegativeInputChannel_AnalogIn1 = 0x01; // Default
+                public const byte NegativeInputChannel_AnalogIn2 = 0x02;
+                public const byte NegativeInputChannel_AnalogIn3 = 0x03;
+                public const byte NegativeInputChannel_AnalogIn4 = 0x04;
+                public const byte NegativeInputChannel_AnalogIn5 = 0x05;
+                public const byte NegativeInputChannel_AnalogIn6 = 0x06;
+                public const byte NegativeInputChannel_AnalogIn7 = 0x07;
+                public const byte NegativeInputChannel_AnalogInCom = 0x08;
+            }
         }
 
-        private static class Register
-        {
-            public const byte Status = 0x00;
-            public const byte Mux = 0x01;
-            public const byte AdControl = 0x02;
-            public const byte SampleRate = 0x03;
-        }
-
-        private static class StatusValue
-        {
-            public const byte DataOutputBitOrderMostSignificantBitFirst = 0x00;
-            public const byte DataOutputBitOrderLeastSignificantBitFirst = 0x08;
-
-            public const byte AutoCalibrateDisabled = 0x00;
-            public const byte AutoCalibrateEnabled = 0x04;
-
-            public const byte AnalogInputBufferDisabled = 0x00;
-            public const byte AnalogInputBufferEnable = 0x02;
-        }
-
-        private static class MuxValue
-        {
-            public const byte PositiveInputChannel_AnalogIn0 = 0x00; // Default
-            public const byte PositiveInputChannel_AnalogIn1 = 0x10;
-            public const byte PositiveInputChannel_AnalogIn2 = 0x20;
-            public const byte PositiveInputChannel_AnalogIn3 = 0x30;
-            public const byte PositiveInputChannel_AnalogIn4 = 0x40;
-            public const byte PositiveInputChannel_AnalogIn5 = 0x50;
-            public const byte PositiveInputChannel_AnalogIn6 = 0x60;
-            public const byte PositiveInputChannel_AnalogIn7 = 0x70;
-            public const byte PositiveInputChannel_AnalogInCom = 0x80;
-
-            public const byte NegativeInputChannel_AnalogIn0 = 0x00;
-            public const byte NegativeInputChannel_AnalogIn1 = 0x01; // Default
-            public const byte NegativeInputChannel_AnalogIn2 = 0x02;
-            public const byte NegativeInputChannel_AnalogIn3 = 0x03;
-            public const byte NegativeInputChannel_AnalogIn4 = 0x04;
-            public const byte NegativeInputChannel_AnalogIn5 = 0x05;
-            public const byte NegativeInputChannel_AnalogIn6 = 0x06;
-            public const byte NegativeInputChannel_AnalogIn7 = 0x07;
-            public const byte NegativeInputChannel_AnalogInCom = 0x08;
-        }
-
-        private readonly ISpiComm _spiComm;
         private InputGain? _currentGain;
-        private InputSampleRate? _currentSampleRate;
+        private InputDataRate? _currentDataRate;
         private InputDetectCurrentSources? _currentDetectCurrentSources;
         private bool? _autoCalibrate;
         private readonly GpioPin _dataReadyPin;
         private readonly Timing _timing = new Timing();
+        private int _gainFactor = 1;
 
         public Ads1256(ISpiComm spiComm, int dataReadyPinNumber)
         {
-            _spiComm = spiComm;
+            SpiComm = spiComm;
 
             _dataReadyPin = GpioController.GetDefault().OpenPin(dataReadyPinNumber);
             _dataReadyPin.SetDriveMode(GpioPinDriveMode.InputPullUp);
@@ -76,51 +84,83 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
 
         public void Dispose()
         {
-            _spiComm.Dispose();
             _dataReadyPin.Dispose();
         }
 
+        public ISpiComm SpiComm { get; }
+
         public InputGain Gain { get; set; }
 
-        public InputSampleRate SampleRate { get; set; }
+        public InputDataRate DataRate { get; set; }
 
         public InputDetectCurrentSources DetectCurrentSources { get; set; }
 
-        public bool AutoCalibrate { get; set; }
+        public bool AutoSelfCalibrate { get; set; }
 
-        public double GetInput(AnalogInput input)
+        public void PerformSelfCalibration()
         {
-            return GetInput(
-                GetPositiveInputMuxValue(input),
-                MuxValue.NegativeInputChannel_AnalogInCom);
+            SpiComm.Operate(spiDevice =>
+            {
+                WriteCommand(spiDevice, Constants.Command.SelfCal);
+
+                WaitDataReady(false);
+            });
         }
 
-        public double GetInputDifference(AnalogInput positiveInput, AnalogInput negativeInput)
+        public double GetInput(InputPin inputPin)
         {
-            return GetInput(
-                GetPositiveInputMuxValue(positiveInput),
-                GetNegativeInputMuxValue(negativeInput));
+            int rawInputValue = GetRawInput(
+                GetPositiveInputMuxValue(inputPin),
+                Constants.MuxValue.NegativeInputChannel_AnalogInCom);
+
+            return ConvertRawInput(rawInputValue);
         }
 
-        private double GetInput(byte positiveInputMuxValue, byte negativeInputMuxValue)
+        public double GetInputDifference(InputPin positiveInputPin, InputPin negativeInputPin)
         {
-            return _spiComm.Use(spiDevice =>
+            int rawInputValue = GetRawInput(
+                GetPositiveInputMuxValue(positiveInputPin),
+                GetNegativeInputMuxValue(negativeInputPin));
+
+            return ConvertRawInput(rawInputValue);
+        }
+
+        public int GetRawInput(InputPin inputPin)
+        {
+            return GetRawInput(
+                GetPositiveInputMuxValue(inputPin),
+                Constants.MuxValue.NegativeInputChannel_AnalogInCom);
+        }
+
+        public int GetRawInputDifference(InputPin positiveInputPin, InputPin negativeInputPin)
+        {
+            return GetRawInput(
+                GetPositiveInputMuxValue(positiveInputPin),
+                GetNegativeInputMuxValue(negativeInputPin));
+        }
+
+        private int GetRawInput(byte positiveInputMuxValue, byte negativeInputMuxValue)
+        {
+            return SpiComm.Operate(spiDevice =>
             {
                 EnsureConfiguration(spiDevice);
 
-                WriteRegister(spiDevice, Register.Mux, (byte)(positiveInputMuxValue | negativeInputMuxValue));
+                WriteRegister(spiDevice, Constants.Register.Mux, (byte)(positiveInputMuxValue | negativeInputMuxValue));
                 _timing.WaitMicroseconds(5);
 
-                WriteCommand(spiDevice, Command.Sync);
+                WriteCommand(spiDevice, Constants.Command.Sync);
                 _timing.WaitMicroseconds(5);
 
-                WriteCommand(spiDevice, Command.WakeUp);
+                WriteCommand(spiDevice, Constants.Command.WakeUp);
                 _timing.WaitMicroseconds(25);
 
-                int rawInputValue = ReadRawInputValue(spiDevice);
-
-                return rawInputValue / 1000000.0;
+                return ReadRawInputValue(spiDevice);
             });
+        }
+
+        private double ConvertRawInput(int rawInputValue)
+        {
+            return rawInputValue / (1000000.0 * _gainFactor);
         }
 
         private int ReadRawInputValue(SpiDevice spiDevice)
@@ -130,7 +170,7 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
             // The buffer to fit the sample of 24 bits (i.e. 3 bytes)
             byte[] raw24BitBuffer = new byte[3];
 
-            spiDevice.Write(new[] { Command.ReadData });
+            spiDevice.Write(new[] { Constants.Command.ReadData });
 
             _timing.WaitMicroseconds(10);
 
@@ -147,105 +187,108 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
             return unchecked((int)value);
         }
 
-        private static byte GetPositiveInputMuxValue(AnalogInput input)
+        private static byte GetPositiveInputMuxValue(InputPin inputPin)
         {
-            switch (input)
+            switch (inputPin)
             {
-                case AnalogInput.Input0:
-                    return MuxValue.PositiveInputChannel_AnalogIn0;
-                case AnalogInput.Input1:
-                    return MuxValue.PositiveInputChannel_AnalogIn1;
-                case AnalogInput.Input2:
-                    return MuxValue.PositiveInputChannel_AnalogIn2;
-                case AnalogInput.Input3:
-                    return MuxValue.PositiveInputChannel_AnalogIn3;
-                case AnalogInput.Input4:
-                    return MuxValue.PositiveInputChannel_AnalogIn4;
-                case AnalogInput.Input5:
-                    return MuxValue.PositiveInputChannel_AnalogIn5;
-                case AnalogInput.Input6:
-                    return MuxValue.PositiveInputChannel_AnalogIn6;
-                case AnalogInput.Input7:
-                    return MuxValue.PositiveInputChannel_AnalogIn7;
+                case InputPin.Input0:
+                    return Constants.MuxValue.PositiveInputChannel_AnalogIn0;
+                case InputPin.Input1:
+                    return Constants.MuxValue.PositiveInputChannel_AnalogIn1;
+                case InputPin.Input2:
+                    return Constants.MuxValue.PositiveInputChannel_AnalogIn2;
+                case InputPin.Input3:
+                    return Constants.MuxValue.PositiveInputChannel_AnalogIn3;
+                case InputPin.Input4:
+                    return Constants.MuxValue.PositiveInputChannel_AnalogIn4;
+                case InputPin.Input5:
+                    return Constants.MuxValue.PositiveInputChannel_AnalogIn5;
+                case InputPin.Input6:
+                    return Constants.MuxValue.PositiveInputChannel_AnalogIn6;
+                case InputPin.Input7:
+                    return Constants.MuxValue.PositiveInputChannel_AnalogIn7;
                 default:
-                    throw new ArgumentOutOfRangeException(nameof(input), input, null);
+                    throw new ArgumentOutOfRangeException(nameof(inputPin), inputPin, null);
             }
         }
 
-        private static byte GetNegativeInputMuxValue(AnalogInput input)
+        private static byte GetNegativeInputMuxValue(InputPin inputPin)
         {
-            switch (input)
+            switch (inputPin)
             {
-                case AnalogInput.Input0:
-                    return MuxValue.NegativeInputChannel_AnalogIn0;
-                case AnalogInput.Input1:
-                    return MuxValue.NegativeInputChannel_AnalogIn1;
-                case AnalogInput.Input2:
-                    return MuxValue.NegativeInputChannel_AnalogIn2;
-                case AnalogInput.Input3:
-                    return MuxValue.NegativeInputChannel_AnalogIn3;
-                case AnalogInput.Input4:
-                    return MuxValue.NegativeInputChannel_AnalogIn4;
-                case AnalogInput.Input5:
-                    return MuxValue.NegativeInputChannel_AnalogIn5;
-                case AnalogInput.Input6:
-                    return MuxValue.NegativeInputChannel_AnalogIn6;
-                case AnalogInput.Input7:
-                    return MuxValue.NegativeInputChannel_AnalogIn7;
+                case InputPin.Input0:
+                    return Constants.MuxValue.NegativeInputChannel_AnalogIn0;
+                case InputPin.Input1:
+                    return Constants.MuxValue.NegativeInputChannel_AnalogIn1;
+                case InputPin.Input2:
+                    return Constants.MuxValue.NegativeInputChannel_AnalogIn2;
+                case InputPin.Input3:
+                    return Constants.MuxValue.NegativeInputChannel_AnalogIn3;
+                case InputPin.Input4:
+                    return Constants.MuxValue.NegativeInputChannel_AnalogIn4;
+                case InputPin.Input5:
+                    return Constants.MuxValue.NegativeInputChannel_AnalogIn5;
+                case InputPin.Input6:
+                    return Constants.MuxValue.NegativeInputChannel_AnalogIn6;
+                case InputPin.Input7:
+                    return Constants.MuxValue.NegativeInputChannel_AnalogIn7;
                 default:
-                    throw new ArgumentOutOfRangeException(nameof(input), input, null);
+                    throw new ArgumentOutOfRangeException(nameof(inputPin), inputPin, null);
             }
         }
 
-        private void WaitDataReady()
+        private void WaitDataReady(bool tightLoop = true)
         {
-            for (int i = 0; i < 400000; i++)
+            long maxMilliseconds = _timing.CurrentMilliseconds + 1000;
+
+            while ((_dataReadyPin.Read() == GpioPinValue.High) && (_timing.CurrentMilliseconds <= maxMilliseconds))
             {
-                if (_dataReadyPin.Read() == GpioPinValue.Low)
+                // Just wait...
+                if (!tightLoop)
                 {
-                    return;
+                    Task.Delay(1).Wait();
                 }
             }
         }
 
-        private static byte GetSampleRateByteValue(InputSampleRate sampleRate)
+        private static byte GetSampleRateByteValue(InputDataRate dataRate)
         {
-            switch (sampleRate)
+            switch (dataRate)
             {
-                case InputSampleRate.SampleRate30000Sps:
-                    return 0xF0;
-                case InputSampleRate.SampleRate15000Sps:
-                    return 0xE0;
-                case InputSampleRate.SampleRate7500Sps:
-                    return 0xD0;
-                case InputSampleRate.SampleRate3750Sps:
-                    return 0xC0;
-                case InputSampleRate.SampleRate2000Sps:
-                    return 0xB0;
-                case InputSampleRate.SampleRate1000Sps:
-                    return 0xA1;
-                case InputSampleRate.SampleRate500Sps:
-                    return 0x92;
-                case InputSampleRate.SampleRate100Sps:
-                    return 0x82;
-                case InputSampleRate.SampleRate60Sps:
-                    return 0x72;
-                case InputSampleRate.SampleRate50Sps:
-                    return 0x63;
-                case InputSampleRate.SampleRate30Sps:
-                    return 0x53;
-                case InputSampleRate.SampleRate25Sps:
-                    return 0x43;
-                case InputSampleRate.SampleRate15Sps:
-                    return 0x33;
-                case InputSampleRate.SampleRate10Sps:
-                    return 0x23;
-                case InputSampleRate.SampleRate5Sps:
-                    return 0x13;
-                case InputSampleRate.SampleRate2_5Sps:
+                case InputDataRate.SampleRate2_5Sps:
                     return 0x03;
+                case InputDataRate.SampleRate5Sps:
+                    return 0x13;
+                case InputDataRate.SampleRate10Sps:
+                    return 0x23;
+                case InputDataRate.SampleRate15Sps:
+                    return 0x33;
+                case InputDataRate.SampleRate25Sps:
+                    return 0x43;
+                case InputDataRate.SampleRate30Sps:
+                    return 0x53;
+                case InputDataRate.SampleRate50Sps:
+                    return 0x63;
+                case InputDataRate.SampleRate60Sps:
+                    return 0x72;
+                case InputDataRate.SampleRate100Sps:
+                    return 0x82;
+                case InputDataRate.SampleRate500Sps:
+                    return 0x92;
+                case InputDataRate.SampleRate1000Sps:
+                    return 0xA1;
+                case InputDataRate.SampleRate2000Sps:
+                    return 0xB0;
+                case InputDataRate.SampleRate3750Sps:
+                    return 0xC0;
+                case InputDataRate.SampleRate7500Sps:
+                    return 0xD0;
+                case InputDataRate.SampleRate15000Sps:
+                    return 0xE0;
+                case InputDataRate.SampleRate30000Sps:
+                    return 0xF0;
                 default:
-                    throw new ArgumentOutOfRangeException(nameof(sampleRate), sampleRate, null);
+                    throw new ArgumentOutOfRangeException(nameof(dataRate), dataRate, null);
             }
         }
 
@@ -292,36 +335,64 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
         private void EnsureConfiguration(SpiDevice spiDevice)
         {
             if ((_currentGain == Gain) &&
-                (_currentSampleRate == SampleRate) &&
+                (_currentDataRate == DataRate) &&
                 (_currentDetectCurrentSources == DetectCurrentSources) &&
-                (_autoCalibrate == AutoCalibrate))
+                (_autoCalibrate == AutoSelfCalibrate))
             {
                 return;
             }
 
             _currentGain = Gain;
-            _currentSampleRate = SampleRate;
+            _currentDataRate = DataRate;
             _currentDetectCurrentSources = DetectCurrentSources;
-            _autoCalibrate = AutoCalibrate;
+            _autoCalibrate = AutoSelfCalibrate;
+
+            switch (_currentGain.Value)
+            {
+                case InputGain.Gain1:
+                    _gainFactor = 1;
+                    break;
+                case InputGain.Gain2:
+                    _gainFactor = 2;
+                    break;
+                case InputGain.Gain4:
+                    _gainFactor = 4;
+                    break;
+                case InputGain.Gain8:
+                    _gainFactor = 8;
+                    break;
+                case InputGain.Gain16:
+                    _gainFactor = 16;
+                    break;
+                case InputGain.Gain32:
+                    _gainFactor = 32;
+                    break;
+                case InputGain.Gain64:
+                    _gainFactor = 64;
+                    break;
+
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
 
             WaitDataReady();
 
             byte statusRegister = (byte)(
-                StatusValue.DataOutputBitOrderMostSignificantBitFirst |
-                (_autoCalibrate.Value ? StatusValue.AutoCalibrateEnabled : StatusValue.AutoCalibrateDisabled) |
-                StatusValue.AnalogInputBufferDisabled);
+                Constants.StatusValue.DataOutputBitOrderMostSignificantBitFirst |
+                (_autoCalibrate.Value ? Constants.StatusValue.AutoCalibrateEnabled : Constants.StatusValue.AutoCalibrateDisabled) |
+                Constants.StatusValue.AnalogInputBufferDisabled);
 
-            byte muxRegister = MuxValue.PositiveInputChannel_AnalogIn0 | MuxValue.NegativeInputChannel_AnalogIn1; // The default value
+            byte muxRegister = Constants.MuxValue.PositiveInputChannel_AnalogIn0 | Constants.MuxValue.NegativeInputChannel_AnalogIn1; // The default value
 
             byte adControlRegisterGain = GetGainByteValue(_currentGain.Value);
             byte adControlRegisterDetectCurrentSourcesByte = GetDetectCurrentSourcesByteValue(_currentDetectCurrentSources.Value);
             byte adControlRegister = (byte)((0 << 5) | adControlRegisterDetectCurrentSourcesByte | adControlRegisterGain);
 
-            byte sampleRateRegister = GetSampleRateByteValue(_currentSampleRate.Value);
+            byte sampleRateRegister = GetSampleRateByteValue(_currentDataRate.Value);
 
             byte[] spiData =
             {
-                Command.WriteRegister,
+                Constants.Command.WriteReg,
                 0x03, // (The number of following bytes minus one)
                 statusRegister,
                 muxRegister,
@@ -345,7 +416,7 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
         {
             byte[] spiData =
             {
-                (byte)(Command.WriteRegister | registerId),
+                (byte)(Constants.Command.WriteReg | registerId),
                 0x00, // (The number of following bytes minus one)
                 value
             };

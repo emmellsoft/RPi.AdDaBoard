@@ -12,6 +12,8 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
             _stopwatch.Start();
         }
 
+        public long CurrentMilliseconds => _stopwatch.ElapsedMilliseconds;
+
         public void WaitMicroseconds(long microSeconds)
         {
             long initialTick = _stopwatch.ElapsedTicks;
