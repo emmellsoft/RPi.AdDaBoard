@@ -21,7 +21,8 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard.Demo
             // ------------------------------
 
             //_currentDemo = OutputDemo;
-            _currentDemo = InputDemo;
+            //_currentDemo = InputDemo;
+            _currentDemo = InputOutputDemo;
 
             //===============================================================
 
@@ -46,8 +47,8 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard.Demo
 
             while (true)
             {
-                double normalizedOutputLevel = outputLevel / 100.0;
-                double invertedNormalizedOutputLevel = 1.0 - normalizedOutputLevel;
+                double normalizedOutputLevel = outputLevel / 100.0; // Get a floating point value between 0.0 and 1.0...
+                double invertedNormalizedOutputLevel = 1.0 - normalizedOutputLevel; // ...and the "inverted"; between 1.0 and 0.0
 
                 adDaBoard.Output.SetOutput(OutputPin.Output0, normalizedOutputLevel);
                 adDaBoard.Output.SetOutput(OutputPin.Output1, invertedNormalizedOutputLevel);
@@ -83,6 +84,34 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard.Demo
                 Debug.WriteLine($"Knob: {knobValue:0.0000}, Photo resistor: {photoResistorValue:0.0000}");
 
                 await Task.Delay(100);
+            }
+        }
+
+        private static async Task InputOutputDemo(IAdDaBoard adDaBoard)
+        {
+            const double vRef = 5.0; // Actually, the vRef value can be ANY value in this demo (since we're cancelling it out with a division of it).
+
+            adDaBoard.Input.DataRate = InputDataRate.SampleRate50Sps;
+            adDaBoard.Input.AutoSelfCalibrate = true;
+            adDaBoard.Input.DetectCurrentSources = InputDetectCurrentSources.Off;
+            adDaBoard.Input.Gain = InputGain.Gain1;
+            adDaBoard.Input.UseInputBuffer = false;
+
+            // The demo continously reads the value of the 10 kohm potentiometer knob and sets the onboard LEDs to its value.
+            // Turning the knob to its min/max positions will light up one LED and turn off the other (in the middle both will be shining, but not at full intensity).
+
+            while (true)
+            {
+                // Get the normalized knob-value between -1.0 and 1.0 (which will actually be between 0.0 and 1.0 due to how the board is constructed):
+                double normalizedKnobValue = adDaBoard.Input.GetInput(vRef, InputPin.Input0) / vRef;
+
+                // Get the inverted value:
+                double invertedNormalizedKnobValue = 1.0 - normalizedKnobValue;
+
+                adDaBoard.Output.SetOutput(OutputPin.Output0, normalizedKnobValue);
+                adDaBoard.Output.SetOutput(OutputPin.Output1, invertedNormalizedKnobValue);
+
+                await Task.Delay(10);
             }
         }
     }
