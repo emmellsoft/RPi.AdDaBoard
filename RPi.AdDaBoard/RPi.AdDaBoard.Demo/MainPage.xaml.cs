@@ -20,11 +20,11 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard.Demo
             // Choose demo here!
             // ------------------------------
 
-            _currentDemo = OutputDemo;
-            //_currentDemo = InputDemo;
+            //_currentDemo = OutputDemo;
+            _currentDemo = InputDemo;
 
             //===============================================================
-            
+
             Task.Run(async () => await Demo()).ConfigureAwait(false);
         }
 
@@ -64,20 +64,23 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard.Demo
 
         private static async Task InputDemo(IAdDaBoard adDaBoard)
         {
+            const double vRef = 5.0;
+
             adDaBoard.Input.DataRate = InputDataRate.SampleRate50Sps;
             adDaBoard.Input.AutoSelfCalibrate = true;
             adDaBoard.Input.DetectCurrentSources = InputDetectCurrentSources.Off;
             adDaBoard.Input.Gain = InputGain.Gain1;
+            adDaBoard.Input.UseInputBuffer = false;
 
             // The demo continously reads the value of the 10 kohm potentiometer knob and the photo resistor and
             // writes the values to the Output window in Visual Studio.
 
             while (true)
             {
-                double knobValue = adDaBoard.Input.GetInput(InputPin.Input0);
-                double photoResistorValue = adDaBoard.Input.GetInput(InputPin.Input0);
+                double knobValue = adDaBoard.Input.GetInput(vRef, InputPin.Input0);
+                double photoResistorValue = adDaBoard.Input.GetInput(vRef, InputPin.Input1);
 
-                Debug.WriteLine($"Knob: {knobValue:0.0000000}, Photo resistor: {photoResistorValue:0.000}");
+                Debug.WriteLine($"Knob: {knobValue:0.0000}, Photo resistor: {photoResistorValue:0.0000}");
 
                 await Task.Delay(100);
             }

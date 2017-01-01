@@ -39,7 +39,7 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
                 public const byte AutoCalibrateEnabled = 0x04;
 
                 public const byte AnalogInputBufferDisabled = 0x00;
-                public const byte AnalogInputBufferEnable = 0x02;
+                public const byte AnalogInputBufferEnabled = 0x02;
             }
 
             public static class MuxValue
@@ -70,6 +70,7 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
         private InputDataRate? _currentDataRate;
         private InputDetectCurrentSources? _currentDetectCurrentSources;
         private bool? _autoCalibrate;
+        private bool? _useInputBuffer;
         private readonly GpioPin _dataReadyPin;
         private readonly Timing _timing = new Timing();
         private int _gainFactor = 1;
@@ -97,6 +98,8 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
 
         public bool AutoSelfCalibrate { get; set; }
 
+        public bool UseInputBuffer { get; set; }
+
         public void PerformSelfCalibration()
         {
             SpiComm.Operate(spiDevice =>
@@ -107,39 +110,23 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
             });
         }
 
-        public double GetInput(InputPin inputPin)
+        public double GetInput(double vRef, InputPin inputPin)
         {
-            int rawInputValue = GetRawInput(
-                GetPositiveInputMuxValue(inputPin),
-                Constants.MuxValue.NegativeInputChannel_AnalogInCom);
-
-            return ConvertRawInput(rawInputValue);
-        }
-
-        public double GetInputDifference(InputPin positiveInputPin, InputPin negativeInputPin)
-        {
-            int rawInputValue = GetRawInput(
-                GetPositiveInputMuxValue(positiveInputPin),
-                GetNegativeInputMuxValue(negativeInputPin));
-
-            return ConvertRawInput(rawInputValue);
-        }
-
-        public int GetRawInput(InputPin inputPin)
-        {
-            return GetRawInput(
+            return GetInput(
+                vRef,
                 GetPositiveInputMuxValue(inputPin),
                 Constants.MuxValue.NegativeInputChannel_AnalogInCom);
         }
 
-        public int GetRawInputDifference(InputPin positiveInputPin, InputPin negativeInputPin)
+        public double GetInputDifference(double vRef, InputPin positiveInputPin, InputPin negativeInputPin)
         {
-            return GetRawInput(
+            return GetInput(
+                vRef,
                 GetPositiveInputMuxValue(positiveInputPin),
                 GetNegativeInputMuxValue(negativeInputPin));
         }
-
-        private int GetRawInput(byte positiveInputMuxValue, byte negativeInputMuxValue)
+        
+        private double GetInput(double vRef, byte positiveInputMuxValue, byte negativeInputMuxValue)
         {
             return SpiComm.Operate(spiDevice =>
             {
@@ -154,13 +141,10 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
                 WriteCommand(spiDevice, Constants.Command.WakeUp);
                 _timing.WaitMicroseconds(25);
 
-                return ReadRawInputValue(spiDevice);
-            });
-        }
+                int rawInputValue = ReadRawInputValue(spiDevice);
 
-        private double ConvertRawInput(int rawInputValue)
-        {
-            return rawInputValue / (1000000.0 * _gainFactor);
+                return rawInputValue * vRef / (0x7FFFFF * _gainFactor);
+            });
         }
 
         private int ReadRawInputValue(SpiDevice spiDevice)
@@ -337,7 +321,8 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
             if ((_currentGain == Gain) &&
                 (_currentDataRate == DataRate) &&
                 (_currentDetectCurrentSources == DetectCurrentSources) &&
-                (_autoCalibrate == AutoSelfCalibrate))
+                (_autoCalibrate == AutoSelfCalibrate) &&
+                (_useInputBuffer == UseInputBuffer))
             {
                 return;
             }
@@ -346,6 +331,7 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
             _currentDataRate = DataRate;
             _currentDetectCurrentSources = DetectCurrentSources;
             _autoCalibrate = AutoSelfCalibrate;
+            _useInputBuffer = UseInputBuffer;
 
             switch (_currentGain.Value)
             {
@@ -380,7 +366,7 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
             byte statusRegister = (byte)(
                 Constants.StatusValue.DataOutputBitOrderMostSignificantBitFirst |
                 (_autoCalibrate.Value ? Constants.StatusValue.AutoCalibrateEnabled : Constants.StatusValue.AutoCalibrateDisabled) |
-                Constants.StatusValue.AnalogInputBufferDisabled);
+                (_useInputBuffer.Value ? Constants.StatusValue.AnalogInputBufferEnabled : Constants.StatusValue.AnalogInputBufferDisabled));
 
             byte muxRegister = Constants.MuxValue.PositiveInputChannel_AnalogIn0 | Constants.MuxValue.NegativeInputChannel_AnalogIn1; // The default value
 

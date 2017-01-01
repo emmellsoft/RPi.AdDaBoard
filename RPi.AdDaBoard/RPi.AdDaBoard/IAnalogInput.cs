@@ -32,38 +32,33 @@
         bool AutoSelfCalibrate { get; set; }
 
         /// <summary>
+        /// Turn on or off the low-drift chopper-stabilized buffer that dramatically increases the input impedance presented by the AD-converter.
+        /// </summary>
+        bool UseInputBuffer { get; set; }
+
+        /// <summary>
         /// Perform a self calibration. <seealso cref="AutoSelfCalibrate"/>
         /// </summary>
         void PerformSelfCalibration();
 
         /// <summary>
         /// Read the value from the given input pin.
+        /// The returned value will be in the range of -vRef ... +vRef.
         /// </summary>
+        /// <param name="vRef">The reference voltage.</param>
         /// <param name="inputPin">The input pin to read.</param>
-        double GetInput(InputPin inputPin);
+        double GetInput(double vRef, InputPin inputPin);
 
         /// <summary>
         /// Get a differential reading between the <see cref="positiveInputPin"/> and <see cref="negativeInputPin"/>.
+        /// The returned value will be in the range of -vRef ... +vRef.
         /// </summary>
+        /// <param name="vRef">The reference voltage.</param>
         /// <param name="positiveInputPin">The positive pin to read.</param>
         /// <param name="negativeInputPin">The negative pin to read.</param>
         /// <returns></returns>
-        double GetInputDifference(InputPin positiveInputPin, InputPin negativeInputPin);
-
-        /// <summary>
-        /// Read the raw 24-bit value from the given input pin.
-        /// </summary>
-        /// <param name="inputPin">The input pin to read.</param>
-        int GetRawInput(InputPin inputPin);
-
-        /// <summary>
-        /// Get a raw 24-bit differential reading between the <see cref="positiveInputPin"/> and <see cref="negativeInputPin"/>.
-        /// </summary>
-        /// <param name="positiveInputPin">The positive pin to read.</param>
-        /// <param name="negativeInputPin">The negative pin to read.</param>
-        /// <returns></returns>
-        int GetRawInputDifference(InputPin positiveInputPin, InputPin negativeInputPin);
-
+        double GetInputDifference(double vRef, InputPin positiveInputPin, InputPin negativeInputPin);
+        
         /// <summary>
         /// Get direct access to the SPI communcation.
         /// </summary>
