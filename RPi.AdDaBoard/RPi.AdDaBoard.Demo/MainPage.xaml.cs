@@ -50,6 +50,7 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard.Demo
                 double normalizedOutputLevel = outputLevel / 100.0; // Get a floating point value between 0.0 and 1.0...
                 double invertedNormalizedOutputLevel = 1.0 - normalizedOutputLevel; // ...and the "inverted"; between 1.0 and 0.0
 
+                // Set the two outputs one at a time (of course the "SetOutputs" method could also be used here).
                 adDaBoard.Output.SetOutput(OutputPin.Output0, normalizedOutputLevel);
                 adDaBoard.Output.SetOutput(OutputPin.Output1, invertedNormalizedOutputLevel);
 
@@ -105,11 +106,11 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard.Demo
                 // Get the normalized knob-value between -1.0 and 1.0 (which will actually be between 0.0 and 1.0 due to how the board is constructed):
                 double normalizedKnobValue = adDaBoard.Input.GetInput(vRef, InputPin.Input0) / vRef;
 
-                // Get the inverted value:
+                // ...and the "inverted" value:
                 double invertedNormalizedKnobValue = 1.0 - normalizedKnobValue;
 
-                adDaBoard.Output.SetOutput(OutputPin.Output0, normalizedKnobValue);
-                adDaBoard.Output.SetOutput(OutputPin.Output1, invertedNormalizedKnobValue);
+                // Set both outputs at the same time:
+                adDaBoard.Output.SetOutputs(normalizedKnobValue, invertedNormalizedKnobValue);
 
                 await Task.Delay(10);
             }

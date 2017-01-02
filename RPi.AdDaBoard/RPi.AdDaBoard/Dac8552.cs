@@ -4,8 +4,10 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
 {
     internal sealed class Dac8552 : IAnalogOutput, IDisposable
     {
-        private const byte OutputPin0 = 0x30; // Magic number to access the DAC output outputPin Output0.
-        private const byte OutputPin1 = 0x34; // Magic number to access the DAC output outputPin B.
+        private const byte LoadA = 0x10;
+        private const byte LoadB = 0x20;
+        private const byte SelectA = 0x00;
+        private const byte SelectB = 0x04;
 
         public Dac8552(ISpiComm spiComm)
         {
@@ -22,19 +24,60 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
 
         public void SetOutput(OutputPin outputPin, double voltage, double vRef)
         {
-            byte channelByte;
+            byte control = LoadA | LoadB;
+
             switch (outputPin)
             {
                 case OutputPin.Output0:
-                    channelByte = OutputPin0;
+                    control |= SelectA;
                     break;
                 case OutputPin.Output1:
-                    channelByte = OutputPin1;
+                    control |= SelectB;
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(outputPin), outputPin, null);
             }
 
+            ushort volt16Bit = Get16BitVoltage(voltage, vRef);
+
+            byte[] data =
+            {
+                control,
+                (byte)(volt16Bit >> 8),
+                (byte)(volt16Bit & 0xff)
+            };
+
+            SpiComm.Operate(spiDevice => spiDevice.Write(data));
+        }
+
+        public void SetOutputs(double normalizedOutputLevel0, double normalizedOutputLevel1) => SetOutputs(normalizedOutputLevel0, normalizedOutputLevel1, 1.0);
+
+        public void SetOutputs(double voltage0, double voltage1, double vRef)
+        {
+            ushort voltA16Bit = Get16BitVoltage(voltage0, vRef);
+
+            byte[] dataA =
+            {
+                SelectA, // Don't "load" yet...
+                (byte)(voltA16Bit >> 8),
+                (byte)(voltA16Bit & 0xff)
+            };
+
+            ushort voltB16Bit = Get16BitVoltage(voltage1, vRef);
+
+            byte[] dataB =
+            {
+                SelectB | LoadA | LoadB, // Now load both!
+                (byte)(voltB16Bit >> 8),
+                (byte)(voltB16Bit & 0xff)
+            };
+
+            SpiComm.Operate(spiDevice => spiDevice.Write(dataA));
+            SpiComm.Operate(spiDevice => spiDevice.Write(dataB));
+        }
+
+        private static ushort Get16BitVoltage(double voltage, double vRef)
+        {
             if (voltage > vRef)
             {
                 voltage = vRef;
@@ -44,16 +87,7 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
                 voltage = 0;
             }
 
-            ushort volt16Bit = (ushort)(ushort.MaxValue * voltage / vRef);
-
-            byte[] data =
-            {
-                channelByte,
-                (byte)(volt16Bit >> 8),
-                (byte)(volt16Bit & 0xff)
-            };
-
-            SpiComm.Operate(spiDevice => spiDevice.Write(data));
+            return (ushort)(ushort.MaxValue * voltage / vRef);
         }
     }
 }

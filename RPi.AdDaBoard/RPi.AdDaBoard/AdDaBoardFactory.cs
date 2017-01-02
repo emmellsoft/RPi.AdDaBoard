@@ -32,7 +32,7 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
 
             var settings = new SpiConnectionSettings(0)
             {
-                ClockFrequency = 400000, // TODO! (Sök t ex "BCM2835_SPI_CLOCK_DIVIDER_1024")
+                ClockFrequency = 400000, // TODO! Investigate this number!
                 Mode = SpiMode.Mode1
             };
 
