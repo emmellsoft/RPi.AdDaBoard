@@ -28,10 +28,10 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
 
             switch (outputPin)
             {
-                case OutputPin.Output0:
+                case OutputPin.DAC0:
                     control |= SelectA;
                     break;
-                case OutputPin.Output1:
+                case OutputPin.DAC1:
                     control |= SelectB;
                     break;
                 default:

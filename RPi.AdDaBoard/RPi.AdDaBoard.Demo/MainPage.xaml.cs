@@ -51,8 +51,8 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard.Demo
                 double invertedNormalizedOutputLevel = 1.0 - normalizedOutputLevel; // ...and the "inverted"; between 1.0 and 0.0
 
                 // Set the two outputs one at a time (of course the "SetOutputs" method could also be used here).
-                adDaBoard.Output.SetOutput(OutputPin.Output0, normalizedOutputLevel);
-                adDaBoard.Output.SetOutput(OutputPin.Output1, invertedNormalizedOutputLevel);
+                adDaBoard.Output.SetOutput(OutputPin.DAC0, normalizedOutputLevel);
+                adDaBoard.Output.SetOutput(OutputPin.DAC1, invertedNormalizedOutputLevel);
 
                 outputLevel += outputLevelStep;
                 if ((outputLevel == 0) || (outputLevel == 100))
@@ -79,8 +79,8 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard.Demo
 
             while (true)
             {
-                double knobValue = adDaBoard.Input.GetInput(vRef, InputPin.Input0);
-                double photoResistorValue = adDaBoard.Input.GetInput(vRef, InputPin.Input1);
+                double knobValue = adDaBoard.Input.GetInput(vRef, InputPin.AD0);
+                double photoResistorValue = adDaBoard.Input.GetInput(vRef, InputPin.AD1);
 
                 Debug.WriteLine($"Knob: {knobValue:0.0000}, Photo resistor: {photoResistorValue:0.0000}");
 
@@ -104,7 +104,7 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard.Demo
             while (true)
             {
                 // Get the normalized knob-value between -1.0 and 1.0 (which will actually be between 0.0 and 1.0 due to how the board is constructed):
-                double normalizedKnobValue = adDaBoard.Input.GetInput(vRef, InputPin.Input0) / vRef;
+                double normalizedKnobValue = adDaBoard.Input.GetInput(vRef, InputPin.AD0) / vRef;
 
                 // ...and the "inverted" value:
                 double invertedNormalizedKnobValue = 1.0 - normalizedKnobValue;

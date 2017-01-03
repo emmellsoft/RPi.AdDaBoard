@@ -241,21 +241,21 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
         {
             switch (inputPin)
             {
-                case InputPin.Input0:
+                case InputPin.AD0:
                     return Constants.MuxValue.PositiveInputChannel_AnalogIn0;
-                case InputPin.Input1:
+                case InputPin.AD1:
                     return Constants.MuxValue.PositiveInputChannel_AnalogIn1;
-                case InputPin.Input2:
+                case InputPin.AD2:
                     return Constants.MuxValue.PositiveInputChannel_AnalogIn2;
-                case InputPin.Input3:
+                case InputPin.AD3:
                     return Constants.MuxValue.PositiveInputChannel_AnalogIn3;
-                case InputPin.Input4:
+                case InputPin.AD4:
                     return Constants.MuxValue.PositiveInputChannel_AnalogIn4;
-                case InputPin.Input5:
+                case InputPin.AD5:
                     return Constants.MuxValue.PositiveInputChannel_AnalogIn5;
-                case InputPin.Input6:
+                case InputPin.AD6:
                     return Constants.MuxValue.PositiveInputChannel_AnalogIn6;
-                case InputPin.Input7:
+                case InputPin.AD7:
                     return Constants.MuxValue.PositiveInputChannel_AnalogIn7;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(inputPin), inputPin, null);
@@ -266,21 +266,21 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
         {
             switch (inputPin)
             {
-                case InputPin.Input0:
+                case InputPin.AD0:
                     return Constants.MuxValue.NegativeInputChannel_AnalogIn0;
-                case InputPin.Input1:
+                case InputPin.AD1:
                     return Constants.MuxValue.NegativeInputChannel_AnalogIn1;
-                case InputPin.Input2:
+                case InputPin.AD2:
                     return Constants.MuxValue.NegativeInputChannel_AnalogIn2;
-                case InputPin.Input3:
+                case InputPin.AD3:
                     return Constants.MuxValue.NegativeInputChannel_AnalogIn3;
-                case InputPin.Input4:
+                case InputPin.AD4:
                     return Constants.MuxValue.NegativeInputChannel_AnalogIn4;
-                case InputPin.Input5:
+                case InputPin.AD5:
                     return Constants.MuxValue.NegativeInputChannel_AnalogIn5;
-                case InputPin.Input6:
+                case InputPin.AD6:
                     return Constants.MuxValue.NegativeInputChannel_AnalogIn6;
-                case InputPin.Input7:
+                case InputPin.AD7:
                     return Constants.MuxValue.NegativeInputChannel_AnalogIn7;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(inputPin), inputPin, null);
