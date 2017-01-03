@@ -39,7 +39,7 @@
         Gain32,
 
         /// <summary>
-        /// Output0 gain amplification of 64; the full-scale input voltage Vin = ±78.125 V when Vref = 2.5 V.
+        /// Output0 gain amplification of 64; the full-scale input voltage Vin = ±78.125 mV when Vref = 2.5 V.
         /// </summary>
         Gain64
     }
