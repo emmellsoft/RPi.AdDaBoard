@@ -90,8 +90,6 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard.Demo
 
         private static async Task InputOutputDemo(IAdDaBoard adDaBoard)
         {
-            const double vRef = 5.0; // Actually, the vRef value can be ANY value in this demo (since we're cancelling it out with a division of it).
-
             adDaBoard.Input.DataRate = InputDataRate.SampleRate50Sps;
             adDaBoard.Input.AutoSelfCalibrate = true;
             adDaBoard.Input.DetectCurrentSources = InputDetectCurrentSources.Off;
@@ -104,7 +102,7 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard.Demo
             while (true)
             {
                 // Get the normalized knob-value between -1.0 and 1.0 (which will actually be between 0.0 and 1.0 due to how the board is constructed):
-                double normalizedKnobValue = adDaBoard.Input.GetInput(vRef, InputPin.AD0) / vRef;
+                double normalizedKnobValue = adDaBoard.Input.GetInput(1.0, InputPin.AD0);
 
                 // ...and the "inverted" value:
                 double invertedNormalizedKnobValue = 1.0 - normalizedKnobValue;
