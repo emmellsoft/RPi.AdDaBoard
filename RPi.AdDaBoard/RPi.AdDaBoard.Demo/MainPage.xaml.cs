@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
+using Windows.ApplicationModel.Core;
+using Windows.UI.Core;
 using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml.Media;
 
 namespace Emmellsoft.IoT.Rpi.AdDaBoard.Demo
 {
@@ -23,6 +26,7 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard.Demo
             //_currentDemo = OutputDemo;
             //_currentDemo = InputDemo;
             _currentDemo = InputOutputDemo;
+            //_currentDemo = KnobToScreenDemo; // <-- Requires a monitor connected to the Raspberry Pi.
 
             //===============================================================
 
@@ -111,6 +115,43 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard.Demo
                 adDaBoard.Output.SetOutputs(normalizedKnobValue, invertedNormalizedKnobValue);
 
                 await Task.Delay(10);
+            }
+        }
+
+        private async Task KnobToScreenDemo(IAdDaBoard adDaBoard)
+        {
+            adDaBoard.Input.DataRate = InputDataRate.SampleRate50Sps;
+            adDaBoard.Input.AutoSelfCalibrate = true;
+            adDaBoard.Input.DetectCurrentSources = InputDetectCurrentSources.Off;
+            adDaBoard.Input.Gain = InputGain.Gain1;
+            adDaBoard.Input.UseInputBuffer = false;
+
+            // The demo continously reads the value of the 10 kohm potentiometer knob and both writes the
+            // voltage on the screen and converts the value to an angle, rotating a canvas-drawing on the screen.
+
+            while (true)
+            {
+                // Get the normalized knob-value between 0.0 and 1.0:
+                double normalizedKnobValue = adDaBoard.Input.GetInput(1.0, InputPin.AD0);
+
+                // Convert the normalized knob value to an angle between -130 and 130 degrees.
+                double angle = normalizedKnobValue * 260 - 130;
+
+                // Convert the normalized knob value to a voltage between 0.0 and 5.0 V.
+                double voltage = normalizedKnobValue * 5.0;
+
+                await CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(
+                    CoreDispatcherPriority.Normal,
+                    () =>
+                    {
+                        // Write the voltage.
+                        KnobValue.Text = voltage.ToString("0.000") + " V";
+
+                        // Rotate the canvas drawing an arrow.
+                        ArrowCanvas.RenderTransform = new RotateTransform { CenterX = 0.5, CenterY = 0.5, Angle = angle };
+                    });
+
+                await Task.Delay(100);
             }
         }
     }

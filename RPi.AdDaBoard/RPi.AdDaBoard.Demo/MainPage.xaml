@@ -6,7 +6,18 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+	<Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+		<TextBlock x:Name="KnobValue" Text="0.000 V" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="36" Margin="0,55,0,0"/>
 
-    </Grid>
+		<Canvas Width="76" Height="76" Margin="0,-55,0,0">
+			<Path Width="74.4167" Height="74.4167" Canvas.Left="0.791662" Canvas.Top="0.791664" Stretch="Fill" Fill="#FF000000" Data="F1 M 38,0.791664C 58.5496,0.791664 75.2083,17.4504 75.2083,38C 75.2083,58.5496 58.5496,75.2083 38,75.2083C 17.4504,75.2083 0.791662,58.5496 0.791662,38C 0.791662,17.4504 17.4504,0.791664 38,0.791664 Z M 38,5.54166C 20.0738,5.54166 5.54167,20.0738 5.54167,38C 5.54167,55.9262 20.0738,70.4583 38,70.4583C 55.9262,70.4583 70.4583,55.9262 70.4583,38C 70.4583,20.0738 55.9262,5.54166 38,5.54166 Z " Margin="0"/>
+		</Canvas>
+
+		<Canvas x:Name="ArrowCanvas" Width="76" Height="76" RenderTransformOrigin="0.5,0.5" Margin="0,-55,0,0">
+			<Canvas.RenderTransform>
+				<CompositeTransform Rotation="-130"/>
+			</Canvas.RenderTransform>
+			<Path Width="28" Height="39.25" Canvas.Left="24" Canvas.Top="17.75" Stretch="Fill" Fill="#FF000000" Data="F1 M 34,57L 42,57L 42,32.25L 52,42.25L 52,31.75L 38,17.75L 24,31.75L 24,42.25L 34,32.25L 34,57 Z "/>
+		</Canvas>
+	</Grid>
 </Page>
