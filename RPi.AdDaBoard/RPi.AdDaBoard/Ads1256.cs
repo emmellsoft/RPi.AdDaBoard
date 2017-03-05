@@ -16,7 +16,7 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
                 public const byte ReadReg = 0x10;   // Read from REG rrr                     0001rrrr (1xh)
                 public const byte WriteReg = 0x50;  // Write to REG rrr                      0101rrrr (5xh)
                 public const byte SelfCal = 0xF0;   // Offset and Gain Self-Calibration      11110000 (F0h)
-                public const byte Sync = 0xFC;      // Synchronize the Output0/D Conversion  11111100 (FCh)
+                public const byte Sync = 0xFC;      // Synchronize the A/D Conversion        11111100 (FCh)
             }
 
             public static class Register

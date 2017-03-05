@@ -2,7 +2,7 @@
 using System.Runtime.InteropServices;
 
 [assembly: AssemblyTitle("RPi.AdDaBoard")]
-[assembly: AssemblyDescription("Output0 complete Windows IoT Core class library for the Raspberry Pi 'Raspberry Pi High-Precision AD/DA Expansion Board' (C#)")]
+[assembly: AssemblyDescription("A complete Windows IoT Core class library for the Raspberry Pi 'Raspberry Pi High-Precision AD/DA Expansion Board' (C#)")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Mattias Larsson")]
 [assembly: AssemblyProduct("RPi.AdDaBoard")]

@@ -22,7 +22,7 @@
 
         /// <summary>
         /// The <see cref="InputDetectCurrentSources"/> can be activated to verify the integrity of an external sensor supplying a signal.
-        /// Output0 shorted sensor produces a very small signal while an open-circuit sensor produces a very large signal.
+        /// A shorted sensor produces a very small signal while an open-circuit sensor produces a very large signal.
         /// </summary>
         InputDetectCurrentSources DetectCurrentSources { get; set; }
 
