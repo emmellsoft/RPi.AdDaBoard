@@ -5,9 +5,10 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
     internal class Timing
     {
         private readonly Stopwatch _stopwatch;
-
+        private readonly double ticksPerMicrosecond;
         public Timing()
         {
+            ticksPerMicrosecond = Stopwatch.Frequency / 1000000;
             _stopwatch = new Stopwatch();
             _stopwatch.Start();
         }
@@ -16,9 +17,7 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
 
         public void WaitMicroseconds(long microSeconds)
         {
-            long initialTick = _stopwatch.ElapsedTicks;
-            double desiredTicks = microSeconds / 1000000.0 * Stopwatch.Frequency;
-            long finalTick = (long)(initialTick + desiredTicks);
+            long finalTick = (long)(_stopwatch.ElapsedTicks + microSeconds * ticksPerMicrosecond);
             while (_stopwatch.ElapsedTicks < finalTick)
             {
                 // Tight loop.  :-/
