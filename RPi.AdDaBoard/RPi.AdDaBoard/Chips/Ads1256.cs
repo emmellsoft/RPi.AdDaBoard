@@ -114,6 +114,7 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
         private readonly GpioPin _dataReadyPin;
         private readonly Timing _timing = new Timing();
         private Registers _currentRegisters;
+        private byte[] raw24BitBuffer = new byte[3];
 
         public Ads1256(ISpiComm spiComm, int dataReadyPinNumber)
         {
@@ -217,14 +218,7 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard
         {
             WaitDataReady();
 
-            // The buffer to fit the sample of 24 bits (i.e. 3 bytes)
-            byte[] raw24BitBuffer = new byte[3];
-
-            spiDevice.Write(new[] { Constants.Command.ReadData });
-
-            _timing.WaitMicroseconds(10);
-
-            spiDevice.Read(raw24BitBuffer);
+            spiDevice.TransferSequential(new[] { Constants.Command.ReadData }, raw24BitBuffer);
 
             uint value = ((uint)raw24BitBuffer[0] << 16) | ((uint)raw24BitBuffer[1] << 8) | raw24BitBuffer[2];
 
