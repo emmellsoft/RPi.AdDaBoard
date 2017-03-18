@@ -1,7 +1,9 @@
-﻿using System;
+﻿using Microsoft.IoT.Lightning.Providers;
+using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using Windows.ApplicationModel.Core;
+using Windows.Devices;
 using Windows.UI.Core;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Media;
@@ -18,6 +20,16 @@ namespace Emmellsoft.IoT.Rpi.AdDaBoard.Demo
         public MainPage()
         {
             InitializeComponent();
+
+            // Check if Lightning is available and use it
+            // The Lightning greatly speedups SPI and GPIO to use it you must enable Direct Memory Mapped driver in Device manager
+            // For more information see: https://developer.microsoft.com/en-us/windows/iot/docs/lightningproviders
+
+            if (LightningProvider.IsLightningEnabled)
+            {
+                Debug.WriteLine("Using Lightning");
+                LowLevelDevicesController.DefaultProvider = LightningProvider.GetAggregateProvider();
+            }
 
             //===============================================================
             // Choose demo here!
